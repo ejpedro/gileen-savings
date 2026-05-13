@@ -2,10 +2,14 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvl2g3B4PNAl0IRT5j5
 
 // SETUP THE SOUNDS
 const dialSound = new Audio('moneyDial.wav'); 
-const coinsSound = new Audio('coins.wav'); // FIXED FILENAME TYPO
+const coinsSound = new Audio('coins.wav'); 
 const chestSound = new Audio('openChest.wav');
 const trashSound = new Audio('trashcan.wav');
 const stardropSound = new Audio('stardrop.wav');
+
+// --- SPEED UP THE DIAL ---
+dialSound.playbackRate = 5.0; // 5x faster speed
+dialSound.loop = true;
 
 let state = { total: 0, categories: [] };
 
@@ -28,9 +32,7 @@ function animateGoldUpdate(targetAmount) {
     
     let currentFrame = 0;
     
-    // Start looping dial sound
     dialSound.currentTime = 0;
-    dialSound.loop = true;
     dialSound.play().catch(e => console.log("Dial play blocked"));
     triggerBounce();
 
@@ -38,7 +40,6 @@ function animateGoldUpdate(targetAmount) {
         currentFrame++;
         let currentDisplay = startAmount + (increment * currentFrame);
         
-        // Safety: Keep playing while tallying
         if (dialSound.paused) dialSound.play();
 
         if (currentFrame >= totalFrames) {
@@ -46,7 +47,6 @@ function animateGoldUpdate(targetAmount) {
             el.innerText = `$${targetAmount.toLocaleString()}`;
             dialSound.pause();
             dialSound.currentTime = 0;
-            dialSound.loop = false;
         } else {
             el.innerText = `$${Math.floor(currentDisplay).toLocaleString()}`;
         }
@@ -166,10 +166,8 @@ async function createCategory() {
         state.categories.push({ name: name, allocated: 0.01, goal: goalAmount });
         sendToSheet("Allocate", name, 0.01); 
         if (goalAmount > 0) sendToSheet("Set Goal", name, goalAmount);
-        
         chestSound.currentTime = 0;
         chestSound.play();
-        
         input.value = '';
         save();
     }
@@ -181,10 +179,8 @@ async function deleteCategory(index) {
     if (confirmed) {
         sendToSheet("Delete Category", cat.name, -cat.allocated);
         state.categories.splice(index, 1);
-        
         trashSound.currentTime = 0;
         trashSound.play();
-        
         save();
     }
 }
