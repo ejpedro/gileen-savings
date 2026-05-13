@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stardew Savings</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <!-- Apple Touch Icon for Home Screen -->
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
         :root {
             --wood-dark: #5e3512;
@@ -47,7 +49,6 @@
         h2 { font-size: 1rem; color: #2e7d32; margin: 5px 0; }
         
         .stat-text { font-size: 0.6rem; margin: 5px 0; text-transform: uppercase; }
-
         #sync-status { font-size: 0.4rem; color: #795548; margin-bottom: 10px; }
 
         input {
@@ -109,6 +110,67 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
         }
+
+        /* --- THEMED MODAL STYLES --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-box {
+            background-color: var(--wood-light);
+            border: 6px solid var(--wood-dark);
+            padding: 25px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            box-shadow: 0 0 0 4px #2c1a11, 8px 8px 0 rgba(0,0,0,0.3);
+        }
+
+        .modal-message {
+            font-size: 0.65rem;
+            line-height: 1.5;
+            color: var(--wood-dark);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .modal-input-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .currency-symbol {
+            font-size: 1rem;
+            color: var(--wood-dark);
+            font-weight: bold;
+        }
+
+        .modal-input {
+            width: 60%;
+            margin-bottom: 0 !important; /* Override default margin */
+            font-size: 0.8rem;
+            border: 4px solid var(--wood-dark);
+        }
+
+        .modal-btns {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .stardrop-border {
+            border-color: var(--gold-yellow) !important;
+            box-shadow: 0 0 20px var(--gold-yellow), 8px 8px 0 rgba(0,0,0,0.3) !important;
+        }
     </style>
 </head>
 <body>
@@ -135,6 +197,24 @@
 
         <div id="category-list"></div>
     </div>
+
+    <!-- CUSTOM DIALOGUE BOX -->
+    <div id="custom-modal" class="modal-overlay">
+        <div id="modal-box" class="modal-box">
+            <p id="modal-message" class="modal-message"></p>
+            <div id="modal-input-container" style="display: none;">
+                <div class="modal-input-wrapper">
+                    <span class="currency-symbol">$</span>
+                    <input type="number" id="custom-modal-input" class="modal-input" placeholder="0">
+                </div>
+            </div>
+            <div class="modal-btns">
+                <button id="modal-confirm-btn">YES</button>
+                <button id="modal-cancel-btn" class="remove">NO</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
