@@ -10,6 +10,7 @@
             --wood-dark: #5e3512;
             --wood-light: #e6be8a;
             --stardew-green: #5fb141;
+            --stardew-red: #e57373;
             --gold-yellow: #ffda00;
         }
 
@@ -28,7 +29,7 @@
             border: 6px solid var(--wood-dark);
             padding: 20px;
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
             box-shadow: 0 8px 0 #3b220d;
             color: var(--wood-dark);
             text-align: center;
@@ -41,42 +42,53 @@
             margin-bottom: 20px;
         }
 
-        h1 { color: var(--gold-yellow); text-shadow: 2px 2px var(--wood-dark); font-size: 1.5rem; }
+        h1 { color: var(--gold-yellow); text-shadow: 2px 2px var(--wood-dark); font-size: 1.2rem; margin: 10px 0; }
+        h2 { font-size: 1rem; color: #2e7d32; margin: 5px 0; }
         
-        .stat-text { font-size: 0.7rem; margin: 10px 0; }
+        .stat-text { font-size: 0.6rem; margin: 5px 0; text-transform: uppercase; }
 
         input {
-            width: 80%;
+            width: 85%;
             padding: 10px;
             font-family: 'Press Start 2P', cursive;
             border: 4px solid var(--wood-dark);
             margin-bottom: 10px;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
+            background: #fff;
         }
+
+        .btn-row { display: flex; justify-content: center; gap: 8px; margin-bottom: 10px; }
 
         button {
             background-color: var(--stardew-green);
             color: white;
             border: none;
             border-bottom: 4px solid #3d702a;
-            padding: 10px 15px;
+            padding: 8px 12px;
             font-family: 'Press Start 2P', cursive;
             cursor: pointer;
-            font-size: 0.6rem;
-            margin: 5px;
+            font-size: 0.55rem;
         }
 
+        button.remove { background-color: var(--stardew-red); border-bottom-color: #af4448; }
         button:active { transform: translateY(2px); border-bottom: 0; }
 
         .category-card {
             background: #fff8e1;
             border: 3px solid var(--wood-dark);
             margin-top: 15px;
-            padding: 10px;
+            padding: 12px;
             text-align: left;
         }
 
-        .category-card h3 { font-size: 0.7rem; margin: 0 0 10px 0; }
+        .category-card h3 { font-size: 0.7rem; margin: 0 0 10px 0; color: var(--wood-dark); }
+        .grid-label { font-size: 0.5rem; margin: 8px 0 4px 0; color: #795548; }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+        }
 
         .bounce { animation: bounce 0.3s ease; }
         @keyframes bounce {
@@ -89,18 +101,21 @@
     <div id="app-container">
         <div class="gold-display">
             <h1 id="total-gold">$0</h1>
-            <p class="stat-text">TOTAL SAVINGS</p>
-            <h2 id="free-money" style="color: #2e7d32;">$0</h2>
-            <p class="stat-text">FREE TO ALLOCATE</p>
+            <p class="stat-text">Total Savings</p>
+            <h2 id="free-money">$0</h2>
+            <p class="stat-text">Free to Allocate</p>
         </div>
 
         <input type="number" id="main-input" placeholder="Amount...">
-        <button onclick="depositGold()">ADD GOLD</button>
+        <div class="btn-row">
+            <button onclick="depositGold()">ADD GOLD</button>
+            <button class="remove" onclick="withdrawGold()">REMOVE</button>
+        </div>
 
         <hr style="border: 1px solid var(--wood-dark); margin: 20px 0;">
 
-        <p class="stat-text">NEW CATEGORY</p>
-        <input type="text" id="cat-name-input" placeholder="Name...">
+        <p class="stat-text">Create Category</p>
+        <input type="text" id="cat-name-input" placeholder="e.g., PC Fund">
         <button onclick="createCategory()">CREATE</button>
 
         <div id="category-list"></div>
