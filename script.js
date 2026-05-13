@@ -7,19 +7,55 @@ const chestSound = new Audio('openChest.wav');
 const trashSound = new Audio('trashcan.wav');
 const stardropSound = new Audio('stardrop.wav');
 
-let state = {
-    total: 0,
-    categories: []
-};
+let state = { total: 0, categories: [] };
 
-// INITIAL LOAD
+// Initialize
 const localData = localStorage.getItem('stardew_savings_v2');
-if (localData) {
-    state = JSON.parse(localData);
-    updateUI();
-}
-
+if (localData) { state = JSON.parse(localData); updateUI(); }
 fetchCloudData();
+
+// --- UPDATED THEMED DIALOGUE FUNCTION ---
+function showStardewDialog(message, options = {}) {
+    const { 
+        showInput = false, 
+        isStardrop = false, 
+        confirmText = "YES", 
+        cancelText = "NO",
+        singleButton = false 
+    } = options;
+
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-modal');
+        const box = document.getElementById('modal-box');
+        const msgEl = document.getElementById('modal-message');
+        const inputContainer = document.getElementById('modal-input-container');
+        const inputField = document.getElementById('custom-modal-input');
+        const confirmBtn = document.getElementById('modal-confirm-btn');
+        const cancelBtn = document.getElementById('modal-cancel-btn');
+
+        msgEl.innerText = message;
+        confirmBtn.innerText = confirmText;
+        cancelBtn.innerText = cancelText;
+        cancelBtn.style.display = singleButton ? 'none' : 'block';
+        
+        modal.style.display = 'flex';
+        inputContainer.style.display = showInput ? 'block' : 'none';
+        inputField.value = '';
+
+        if (isStardrop) box.classList.add('stardrop-border');
+        else box.classList.remove('stardrop-border');
+
+        const close = (value) => {
+            modal.style.display = 'none';
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            resolve(value);
+        };
+
+        confirmBtn.onclick = () => close(showInput ? parseFloat(inputField.value) || 0 : true);
+        cancelBtn.onclick = () => close(null);
+    });
+}
 
 async function fetchCloudData() {
     const statusEl = document.getElementById('sync-status');
@@ -27,7 +63,6 @@ async function fetchCloudData() {
         statusEl.innerText = "Syncing with Cloud...";
         const response = await fetch(SCRIPT_URL);
         const cloudRows = await response.json();
-        
         let newTotal = 0;
         let categoryMap = {};
 
@@ -36,19 +71,12 @@ async function fetchCloudData() {
             const action = row[1];
             const catName = row[2];
             const amount = parseFloat(row[3]);
-
             if (action === "Deposit" || action === "Withdraw") {
                 newTotal += amount;
             } else if (action === "Allocate" || action === "De-allocate" || action === "Delete Category" || action === "Set Goal") {
-                if (!categoryMap[catName]) {
-                    categoryMap[catName] = { allocated: 0, goal: 0 };
-                }
-                
-                if (action === "Set Goal") {
-                    categoryMap[catName].goal = amount;
-                } else {
-                    categoryMap[catName].allocated += amount;
-                }
+                if (!categoryMap[catName]) categoryMap[catName] = { allocated: 0, goal: 0 };
+                if (action === "Set Goal") categoryMap[catName].goal = amount;
+                else categoryMap[catName].allocated += amount;
             }
         });
 
@@ -58,16 +86,11 @@ async function fetchCloudData() {
                  newCategories.push({ name, allocated: data.allocated, goal: data.goal });
             }
         }
-
         state.total = newTotal;
         state.categories = newCategories;
-        
-        localStorage.setItem('stardew_savings_v2', JSON.stringify(state));
-        updateUI();
+        save();
         statusEl.innerText = "Cloud Sync Active";
-    } catch (e) {
-        statusEl.innerText = "Offline Mode";
-    }
+    } catch (e) { statusEl.innerText = "Offline Mode"; }
 }
 
 function save() {
@@ -89,7 +112,7 @@ function depositGold() {
     }
 }
 
-function withdrawGold() {
+async function withdrawGold() {
     const input = document.getElementById('main-input');
     const amount = parseFloat(input.value);
     const free = calculateFree();
@@ -101,40 +124,45 @@ function withdrawGold() {
         sendToSheet("Withdraw", "Main", -amount);
         save();
     } else if (amount > free) {
-        alert("Not enough 'Free Gold'!");
+        await showStardewDialog("Not enough 'Free Gold'!", { singleButton: true, confirmText: "OK" });
     }
 }
 
-function createCategory() {
+async function createCategory() {
     const input = document.getElementById('cat-name-input');
     const name = input.value.trim();
-    if (name) {
-        if (!state.categories.find(c => c.name === name)) {
-            let goalAmount = 0;
-            const hasGoal = confirm(`Would you like to set a savings goal for "${name}"?`);
-            
-            if (hasGoal) {
-                const goalInput = prompt("Enter the goal amount:");
-                goalAmount = parseFloat(goalInput) || 0;
-            }
-
-            state.categories.push({ name: name, allocated: 0.01, goal: goalAmount });
-            
-            sendToSheet("Allocate", name, 0.01); 
-            if (goalAmount > 0) {
-                sendToSheet("Set Goal", name, goalAmount);
-            }
-
-            chestSound.play();
-            save();
+    if (name && !state.categories.find(c => c.name === name)) {
+        let goalAmount = 0;
+        const wantsGoal = await showStardewDialog(`Set a savings goal for "${name.toUpperCase()}"?`, {
+            confirmText: "YES",
+            cancelText: "NO"
+        });
+        
+        if (wantsGoal) {
+            goalAmount = await showStardewDialog("Enter the goal amount:", {
+                showInput: true,
+                confirmText: "SET",
+                cancelText: "SKIP"
+            });
         }
+
+        state.categories.push({ name: name, allocated: 0.01, goal: goalAmount });
+        sendToSheet("Allocate", name, 0.01); 
+        if (goalAmount > 0) sendToSheet("Set Goal", name, goalAmount);
+        
+        chestSound.play();
         input.value = '';
+        save();
     }
 }
 
-function deleteCategory(index) {
+async function deleteCategory(index) {
     const cat = state.categories[index];
-    if (confirm(`Delete "${cat.name}"? Gold ($${Math.floor(cat.allocated)}) returns to Free pool.`)) {
+    const confirmed = await showStardewDialog(`Delete "${cat.name.toUpperCase()}"? Gold returns to pool.`, {
+        confirmText: "YES",
+        cancelText: "NO"
+    });
+    if (confirmed) {
         sendToSheet("Delete Category", cat.name, -cat.allocated);
         state.categories.splice(index, 1);
         trashSound.play();
@@ -142,39 +170,38 @@ function deleteCategory(index) {
     }
 }
 
-function allocate(index, amount) {
+async function allocate(index, amount) {
     const free = calculateFree();
     const cat = state.categories[index];
     const prevAllocated = cat.allocated;
 
     if (amount > 0 && free >= amount) {
         cat.allocated += amount;
-        
         if (cat.goal > 0 && prevAllocated < cat.goal && cat.allocated >= cat.goal) {
             stardropSound.play();
-            alert(`Congratulations! You completed saving up for ${cat.name.toUpperCase()}!`);
+            await showStardewDialog(`QUEST COMPLETE! You saved for ${cat.name.toUpperCase()}!`, {
+                isStardrop: true,
+                singleButton: true,
+                confirmText: "AWESOME"
+            });
         } else {
             coinSound.currentTime = 0;
             coinSound.play();
         }
-
         sendToSheet("Allocate", cat.name, amount);
         save();
-    } 
-    else if (amount < 0 && cat.allocated >= Math.abs(amount)) {
+    } else if (amount < 0 && cat.allocated >= Math.abs(amount)) {
         cat.allocated += amount;
         coinSound.currentTime = 0;
         coinSound.play();
         sendToSheet("De-allocate", cat.name, amount);
         save();
     } else {
-        alert("Gold check failed!");
+        await showStardewDialog("Gold check failed!", { singleButton: true, confirmText: "OK" });
     }
 }
 
-// --- UPDATED MATH HERE ---
 function calculateFree() {
-    // Math.floor(cat.allocated) ensures the 0.01 is ignored for the total
     const used = state.categories.reduce((sum, cat) => sum + Math.floor(cat.allocated), 0);
     return state.total - used;
 }
@@ -182,31 +209,24 @@ function calculateFree() {
 function updateUI() {
     document.getElementById('total-gold').innerText = `$${state.total.toLocaleString()}`;
     document.getElementById('free-money').innerText = `$${calculateFree().toLocaleString()}`;
-
     const list = document.getElementById('category-list');
     list.innerHTML = '';
-
     state.categories.forEach((cat, i) => {
         const div = document.createElement('div');
         div.className = 'category-card';
+        let progress = `Saved: $${Math.floor(cat.allocated)}`;
+        if (cat.goal > 0) progress = `Progress: $${Math.floor(cat.allocated)} / $${cat.goal}`;
         
-        let progressText = `Saved: $${Math.floor(cat.allocated)}`;
-        if (cat.goal > 0) {
-            progressText = `Progress: $${Math.floor(cat.allocated)} / $${cat.goal}`;
-        }
-
         const amounts = [1, 5, 10, 25, 50];
-        const addButtons = amounts.map(amt => `<button onclick="allocate(${i}, ${amt})">+${amt}</button>`).join('');
-        const subButtons = amounts.map(amt => `<button class="remove" onclick="allocate(${i}, -${amt})">-${amt}</button>`).join('');
+        const addBtns = amounts.map(amt => `<button onclick="allocate(${i}, ${amt})">+${amt}</button>`).join('');
+        const subBtns = amounts.map(amt => `<button class="remove" onclick="allocate(${i}, -${amt})">-${amt}</button>`).join('');
 
         div.innerHTML = `
             <button class="delete-btn" onclick="deleteCategory(${i})">X</button>
             <h3>${cat.name.toUpperCase()}</h3>
-            <p class="stat-text">${progressText}</p>
-            <div class="grid-label">Add Funds:</div>
-            <div class="button-grid">${addButtons}</div>
-            <div class="grid-label">Remove Funds:</div>
-            <div class="button-grid">${subButtons}</div>
+            <p class="stat-text">${progress}</p>
+            <div class="grid-label">Add Funds:</div><div class="button-grid">${addBtns}</div>
+            <div class="grid-label">Remove:</div><div class="button-grid">${subBtns}</div>
         `;
         list.appendChild(div);
     });
