@@ -5,6 +5,7 @@ const dialSound = new Audio('moneyDial.wav');
 const coinSound = new Audio('coin.wav'); 
 const chestSound = new Audio('openChest.wav');
 const trashSound = new Audio('trashcan.wav');
+const stardropSound = new Audio('stardrop.wav');
 
 let state = {
     total: 0,
@@ -38,33 +39,33 @@ async function fetchCloudData() {
 
             if (action === "Deposit" || action === "Withdraw") {
                 newTotal += amount;
-            } else if (action === "Allocate" || action === "De-allocate" || action === "Delete Category") {
+            } else if (action === "Allocate" || action === "De-allocate" || action === "Delete Category" || action === "Set Goal") {
                 if (!categoryMap[catName]) {
-                    categoryMap[catName] = 0;
+                    categoryMap[catName] = { allocated: 0, goal: 0 };
                 }
-                categoryMap[catName] += amount;
+                
+                if (action === "Set Goal") {
+                    categoryMap[catName].goal = amount;
+                } else {
+                    categoryMap[catName].allocated += amount;
+                }
             }
         });
 
-        // SMART FILTER: Only show categories that have money or haven't been deleted
         let newCategories = [];
-        for (const [name, allocated] of Object.entries(categoryMap)) {
-            // We ignore the "Main" entry and any category that ended up at $0 or less
-            if (name !== "Main" && allocated > 0) {
-                 newCategories.push({ name, allocated });
+        for (const [name, data] of Object.entries(categoryMap)) {
+            if (name !== "Main" && data.allocated > 0) {
+                 newCategories.push({ name, allocated: data.allocated, goal: data.goal });
             }
         }
 
         state.total = newTotal;
         state.categories = newCategories;
         
-        // Save locally without triggering a cloud loop
         localStorage.setItem('stardew_savings_v2', JSON.stringify(state));
         updateUI();
-        
         statusEl.innerText = "Cloud Sync Active";
     } catch (e) {
-        console.error("Sync error:", e);
         statusEl.innerText = "Offline Mode";
     }
 }
@@ -92,7 +93,6 @@ function withdrawGold() {
     const input = document.getElementById('main-input');
     const amount = parseFloat(input.value);
     const free = calculateFree();
-    
     if (amount > 0 && free >= amount) {
         state.total -= amount;
         input.value = '';
@@ -110,9 +110,22 @@ function createCategory() {
     const name = input.value.trim();
     if (name) {
         if (!state.categories.find(c => c.name === name)) {
-            state.categories.push({ name: name, allocated: 0 });
-            // We send a tiny $0.01 allocation to "initialize" it in the cloud history
+            let goalAmount = 0;
+            const hasGoal = confirm(`Would you like to set a savings goal for "${name}"?`);
+            
+            if (hasGoal) {
+                const goalInput = prompt("Enter the goal amount:");
+                goalAmount = parseFloat(goalInput) || 0;
+            }
+
+            state.categories.push({ name: name, allocated: 0.01, goal: goalAmount });
+            
+            // Send initial state to cloud
             sendToSheet("Allocate", name, 0.01); 
+            if (goalAmount > 0) {
+                sendToSheet("Set Goal", name, goalAmount);
+            }
+
             chestSound.play();
             save();
         }
@@ -121,12 +134,9 @@ function createCategory() {
 }
 
 function deleteCategory(index) {
-    const catName = state.categories[index].name;
-    const amountSaved = state.categories[index].allocated;
-    
-    if (confirm(`Delete "${catName}"? Gold ($${amountSaved}) returns to Free pool.`)) {
-        // We send a negative amount that exactly cancels out the category total
-        sendToSheet("Delete Category", catName, -amountSaved);
+    const cat = state.categories[index];
+    if (confirm(`Delete "${cat.name}"? Gold ($${Math.floor(cat.allocated)}) returns to Free pool.`)) {
+        sendToSheet("Delete Category", cat.name, -cat.allocated);
         state.categories.splice(index, 1);
         trashSound.play();
         save();
@@ -135,20 +145,29 @@ function deleteCategory(index) {
 
 function allocate(index, amount) {
     const free = calculateFree();
-    const catName = state.categories[index].name;
+    const cat = state.categories[index];
+    const prevAllocated = cat.allocated;
 
     if (amount > 0 && free >= amount) {
-        state.categories[index].allocated += amount;
-        coinSound.currentTime = 0;
-        coinSound.play();
-        sendToSheet("Allocate", catName, amount);
+        cat.allocated += amount;
+        
+        // CHECK FOR GOAL COMPLETION
+        if (cat.goal > 0 && prevAllocated < cat.goal && cat.allocated >= cat.goal) {
+            stardropSound.play();
+            alert(`Congratulations! You completed saving up for ${cat.name.toUpperCase()}!`);
+        } else {
+            coinSound.currentTime = 0;
+            coinSound.play();
+        }
+
+        sendToSheet("Allocate", cat.name, amount);
         save();
     } 
-    else if (amount < 0 && state.categories[index].allocated >= Math.abs(amount)) {
-        state.categories[index].allocated += amount;
+    else if (amount < 0 && cat.allocated >= Math.abs(amount)) {
+        cat.allocated += amount;
         coinSound.currentTime = 0;
         coinSound.play();
-        sendToSheet("De-allocate", catName, amount);
+        sendToSheet("De-allocate", cat.name, amount);
         save();
     } else {
         alert("Gold check failed!");
@@ -170,6 +189,13 @@ function updateUI() {
     state.categories.forEach((cat, i) => {
         const div = document.createElement('div');
         div.className = 'category-card';
+        
+        // Display Logic for Goals
+        let progressText = `Saved: $${Math.floor(cat.allocated)}`;
+        if (cat.goal > 0) {
+            progressText = `Progress: $${Math.floor(cat.allocated)} / $${cat.goal}`;
+        }
+
         const amounts = [1, 5, 10, 25, 50];
         const addButtons = amounts.map(amt => `<button onclick="allocate(${i}, ${amt})">+${amt}</button>`).join('');
         const subButtons = amounts.map(amt => `<button class="remove" onclick="allocate(${i}, -${amt})">-${amt}</button>`).join('');
@@ -177,7 +203,7 @@ function updateUI() {
         div.innerHTML = `
             <button class="delete-btn" onclick="deleteCategory(${i})">X</button>
             <h3>${cat.name.toUpperCase()}</h3>
-            <p class="stat-text">Saved: $${Math.floor(cat.allocated)}</p>
+            <p class="stat-text">${progressText}</p>
             <div class="grid-label">Add Funds:</div>
             <div class="button-grid">${addButtons}</div>
             <div class="grid-label">Remove Funds:</div>
@@ -200,5 +226,5 @@ async function sendToSheet(action, category, amount) {
             mode: 'no-cors',
             body: JSON.stringify({ action, category, amount })
         });
-    } catch (e) { console.log("Cloud update failed", e); }
+    } catch (e) { console.log("Sync error", e); }
 }
