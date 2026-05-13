@@ -1,46 +1,52 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvl2g3B4PNAl0IRT5j5Sa6AxDBAO61T3pv63a7R1E9Ajkc0tf6j-9zcdccrJFcGHTLog/exec';
 
+// SETUP THE SOUNDS
 const dialSound = new Audio('moneyDial.wav'); 
-const coinSound = new Audio('coin.wav'); 
+const coinsSound = new Audio('coins.wav'); // FIXED FILENAME TYPO
 const chestSound = new Audio('openChest.wav');
 const trashSound = new Audio('trashcan.wav');
 const stardropSound = new Audio('stardrop.wav');
 
 let state = { total: 0, categories: [] };
 
+// Initialize
 const localData = localStorage.getItem('stardew_savings_v2');
 if (localData) { state = JSON.parse(localData); updateUI(); }
 fetchCloudData();
 
-// --- NEW COUNT-UP ANIMATION LOGIC ---
+// --- COUNT-UP ANIMATION ---
 function animateGoldUpdate(targetAmount) {
     const el = document.getElementById('total-gold');
-    // Parse current display value, removing $ and commas
     const startAmount = parseInt(el.innerText.replace('$', '').replace(/,/g, '')) || 0;
     
     if (startAmount === targetAmount) return;
 
-    const duration = 800; // Total time in ms
-    const frameRate = 30; // ms per update
+    const duration = 1000; 
+    const frameRate = 40; 
     const totalFrames = duration / frameRate;
     const increment = (targetAmount - startAmount) / totalFrames;
     
     let currentFrame = 0;
     
-    // Start sound loop
+    // Start looping dial sound
+    dialSound.currentTime = 0;
     dialSound.loop = true;
-    dialSound.play();
+    dialSound.play().catch(e => console.log("Dial play blocked"));
     triggerBounce();
 
     const timer = setInterval(() => {
         currentFrame++;
         let currentDisplay = startAmount + (increment * currentFrame);
         
+        // Safety: Keep playing while tallying
+        if (dialSound.paused) dialSound.play();
+
         if (currentFrame >= totalFrames) {
             clearInterval(timer);
             el.innerText = `$${targetAmount.toLocaleString()}`;
             dialSound.pause();
             dialSound.currentTime = 0;
+            dialSound.loop = false;
         } else {
             el.innerText = `$${Math.floor(currentDisplay).toLocaleString()}`;
         }
@@ -107,14 +113,11 @@ async function fetchCloudData() {
             }
         }
 
-        // Only animate if the total actually changed from a cloud update
-        if (state.total !== newTotal) {
-            animateGoldUpdate(newTotal);
-        }
+        if (state.total !== newTotal) { animateGoldUpdate(newTotal); }
 
         state.total = newTotal;
         state.categories = newCategories;
-        save(false); // don't re-trigger animation in updateUI
+        save(false);
         icon.className = "sync-star synced";
     } catch (e) { icon.className = "sync-star offline"; }
 }
@@ -128,12 +131,11 @@ function depositGold() {
     const input = document.getElementById('main-input');
     const amount = parseFloat(input.value);
     if (amount > 0) {
-        const oldTotal = state.total;
         state.total += amount;
         input.value = '';
-        animateGoldUpdate(state.total); // Trigger tally effect
+        animateGoldUpdate(state.total); 
         sendToSheet("Deposit", "Main", amount);
-        save(false); // UI already updated by animation
+        save(false); 
     }
 }
 
@@ -144,7 +146,7 @@ async function withdrawGold() {
     if (amount > 0 && free >= amount) {
         state.total -= amount;
         input.value = '';
-        animateGoldUpdate(state.total); // Trigger tally effect (downwards)
+        animateGoldUpdate(state.total); 
         sendToSheet("Withdraw", "Main", -amount);
         save(false);
     } else if (amount > free) {
@@ -164,7 +166,10 @@ async function createCategory() {
         state.categories.push({ name: name, allocated: 0.01, goal: goalAmount });
         sendToSheet("Allocate", name, 0.01); 
         if (goalAmount > 0) sendToSheet("Set Goal", name, goalAmount);
+        
+        chestSound.currentTime = 0;
         chestSound.play();
+        
         input.value = '';
         save();
     }
@@ -176,7 +181,10 @@ async function deleteCategory(index) {
     if (confirmed) {
         sendToSheet("Delete Category", cat.name, -cat.allocated);
         state.categories.splice(index, 1);
+        
+        trashSound.currentTime = 0;
         trashSound.play();
+        
         save();
     }
 }
@@ -188,18 +196,19 @@ async function allocate(index, amount) {
     if (amount > 0 && free >= amount) {
         cat.allocated += amount;
         if (cat.goal > 0 && prevAllocated < cat.goal && cat.allocated >= cat.goal) {
+            stardropSound.currentTime = 0;
             stardropSound.play();
             await showStardewDialog(`QUEST COMPLETE! Gileen, you saved up for ${cat.name.toUpperCase()}!`, { isStardrop: true, singleButton: true, confirmText: "COLLECT REWARD" });
         } else {
-            coinSound.currentTime = 0;
-            coinSound.play();
+            coinsSound.currentTime = 0;
+            coinsSound.play();
         }
         sendToSheet("Allocate", cat.name, amount);
         save();
     } else if (amount < 0 && cat.allocated >= Math.abs(amount)) {
         cat.allocated += amount;
-        coinSound.currentTime = 0;
-        coinSound.play();
+        coinsSound.currentTime = 0;
+        coinsSound.play();
         sendToSheet("De-allocate", cat.name, amount);
         save();
     } else {
