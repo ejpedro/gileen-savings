@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gileen's Farm Funds</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Apple Touch Icon for Home Screen -->
     <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
@@ -36,48 +37,23 @@
             box-shadow: 0 8px 0 #3b220d;
             color: var(--wood-dark);
             text-align: center;
-            position: relative;
         }
 
-        /* --- NEW SYNC ICON STYLES --- */
-        #sync-container {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 0.8rem;
-        }
-
-        .sync-star {
-            display: inline-block;
-            transition: color 0.3s ease;
-        }
-
-        .syncing {
-            animation: star-spin 1s linear infinite;
-            color: #795548;
-        }
-
-        .synced {
-            color: var(--gold-yellow);
-            text-shadow: 0 0 5px var(--gold-yellow);
-        }
-
-        .offline {
-            color: var(--stardew-red);
-        }
-
-        @keyframes star-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
+        /* --- STYLED WOODEN HEADER --- */
         .stardew-header {
             color: var(--header-tan);
             font-size: 1.1rem;
             text-transform: uppercase;
             margin: 15px 0 25px 0;
             line-height: 1.4;
-            text-shadow: 3px 3px 0 var(--wood-dark), -1px -1px 0 var(--wood-dark), 1px -1px 0 var(--wood-dark), -1px 1px 0 var(--wood-dark), 1px 1px 0 var(--wood-dark), 5px 5px 0 rgba(0,0,0,0.4);
+            /* Creates the thick "bolted-on" wooden look */
+            text-shadow: 
+                3px 3px 0 var(--wood-dark), 
+                -1px -1px 0 var(--wood-dark),  
+                1px -1px 0 var(--wood-dark),
+                -1px 1px 0 var(--wood-dark),
+                1px 1px 0 var(--wood-dark),
+                5px 5px 0 rgba(0,0,0,0.4);
             letter-spacing: 2px;
         }
 
@@ -93,6 +69,7 @@
         h2#free-money { font-size: 1rem; color: #2e7d32; margin: 5px 0; }
         
         .stat-text { font-size: 0.6rem; margin: 5px 0; text-transform: uppercase; }
+        #sync-status { font-size: 0.4rem; color: #795548; margin-bottom: 10px; }
 
         input {
             width: 85%;
@@ -120,7 +97,12 @@
         button.remove { background-color: var(--stardew-red); border-bottom-color: #af4448; }
         button:active { transform: translateY(2px); border-bottom: 0; }
 
-        .quest-board-header { font-size: 0.7rem; color: var(--wood-dark); margin: 20px 0 10px 0; text-decoration: underline; }
+        .quest-board-header {
+            font-size: 0.7rem;
+            color: var(--wood-dark);
+            margin: 20px 0 10px 0;
+            text-decoration: underline;
+        }
 
         .category-card {
             background: #fff8e1;
@@ -145,7 +127,11 @@
         .category-card h3 { font-size: 0.7rem; margin: 0 0 10px 0; color: #5e3512; width: 85%; }
         .grid-label { font-size: 0.45rem; margin: 8px 0 4px 0; color: #795548; text-transform: uppercase; }
         
-        .button-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+        }
 
         .bounce { animation: bounce 0.3s ease; }
         @keyframes bounce {
@@ -153,6 +139,7 @@
             50% { transform: scale(1.1); }
         }
 
+        /* --- THEMED MODAL STYLES --- */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -173,20 +160,42 @@
             box-shadow: 0 0 0 4px #2c1a11, 8px 8px 0 rgba(0,0,0,0.3);
         }
 
-        .modal-message { font-size: 0.6rem; line-height: 1.6; color: var(--wood-dark); margin-bottom: 20px; text-transform: uppercase; }
-        .modal-input-wrapper { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px; }
+        .modal-message {
+            font-size: 0.6rem;
+            line-height: 1.6;
+            color: var(--wood-dark);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .modal-input-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
         .currency-symbol { font-size: 1rem; color: var(--wood-dark); }
-        .modal-input { width: 60%; margin-bottom: 0 !important; font-size: 0.8rem; border: 4px solid var(--wood-dark); }
+
+        .modal-input {
+            width: 60%;
+            margin-bottom: 0 !important;
+            font-size: 0.8rem;
+            border: 4px solid var(--wood-dark);
+        }
+
         .modal-btns { display: flex; justify-content: center; gap: 15px; }
-        .stardrop-border { border-color: var(--gold-yellow) !important; box-shadow: 0 0 20px var(--gold-yellow), 8px 8px 0 rgba(0,0,0,0.3) !important; }
+
+        .stardrop-border {
+            border-color: var(--gold-yellow) !important;
+            box-shadow: 0 0 20px var(--gold-yellow), 8px 8px 0 rgba(0,0,0,0.3) !important;
+        }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <!-- THE NEW ICON SYNC -->
-        <div id="sync-container">
-            <span id="sync-icon" class="sync-star synced">★</span>
-        </div>
+        <div id="sync-status">Connecting to Pelican Town...</div>
         
         <h1 class="stardew-header">Gileen's<br>Farm Funds</h1>
 
