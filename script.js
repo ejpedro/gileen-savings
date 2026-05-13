@@ -1,12 +1,10 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkoPiBQT342QDfsOiltj9G6xg97Umt83hmiVCBJotl8gxMSd0qXrTEHw4qao51dvPPdQ/exec';
 
-// Load existing data or start a new game
 let state = JSON.parse(localStorage.getItem('stardew_savings_v2')) || {
     total: 0,
     categories: []
 };
 
-// Start the UI
 updateUI();
 
 function save() {
@@ -51,16 +49,27 @@ function createCategory() {
     }
 }
 
+function deleteCategory(index) {
+    const catName = state.categories[index].name;
+    const amountSaved = state.categories[index].allocated;
+    
+    if (confirm(`Delete "${catName}"? Any saved gold ($${amountSaved}) will be moved back to Free to Allocate.`)) {
+        // Log the deletion to Google Sheets
+        sendToSheet("Delete Category", catName, -amountSaved);
+        
+        // Remove the category from the array
+        state.categories.splice(index, 1);
+        save();
+    }
+}
+
 function allocate(index, amount) {
     const free = calculateFree();
-    
-    // Adding to category
     if (amount > 0 && free >= amount) {
         state.categories[index].allocated += amount;
         sendToSheet("Allocate", state.categories[index].name, amount);
         save();
     } 
-    // Subtracting from category
     else if (amount < 0 && state.categories[index].allocated >= Math.abs(amount)) {
         state.categories[index].allocated += amount;
         sendToSheet("De-allocate", state.categories[index].name, amount);
@@ -87,16 +96,11 @@ function updateUI() {
         div.className = 'category-card';
         
         const amounts = [1, 5, 10, 25, 50];
-        
-        const addButtons = amounts.map(amt => 
-            `<button onclick="allocate(${i}, ${amt})">+${amt}</button>`
-        ).join('');
-        
-        const subButtons = amounts.map(amt => 
-            `<button class="remove" onclick="allocate(${i}, -${amt})">-${amt}</button>`
-        ).join('');
+        const addButtons = amounts.map(amt => `<button onclick="allocate(${i}, ${amt})">+${amt}</button>`).join('');
+        const subButtons = amounts.map(amt => `<button class="remove" onclick="allocate(${i}, -${amt})">-${amt}</button>`).join('');
 
         div.innerHTML = `
+            <button class="delete-btn" onclick="deleteCategory(${i})">X</button>
             <h3>${cat.name.toUpperCase()}</h3>
             <p class="stat-text">Saved: $${cat.allocated}</p>
             <div class="grid-label">Add Funds:</div>
