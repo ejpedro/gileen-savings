@@ -1,35 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stardew Savings</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-</head>
-<body>
-    <div id="game-container">
-        <header>
-            <h1 id="total-gold">$0</h1>
-            <p>Total Savings</p>
-        </header>
-
-        <section id="allocation-section">
-            <div class="stat-box">
-                <span id="free-money">$0</span>
-                <p>Free to Allocate</p>
-            </div>
-        </section>
-
-        <section id="input-area">
-            <input type="number" id="gold-input" placeholder="0000">
-            <button onclick="depositGold()">Add Gold</button>
-        </section>
-
-        <div id="category-list">
-            <!-- Categories will be generated here by JavaScript -->
-        </div>
+<!-- Inside your #game-container -->
+<div id="stats-display">
+    <h1 id="total-gold">$0</h1>
+    <p>Total Gold (Total Savings)</p>
+    
+    <div class="stat-box">
+        <span id="free-money">$0</span>
+        <p>Free to Allocate</p>
     </div>
-    <script src="script.js"></script>
-</body>
-</html>
+</div>
+
+<hr>
+
+<!-- ADD CATEGORY SECTION -->
+<div id="category-creator">
+    <input type="text" id="new-cat-name" placeholder="Category Name (e.g. Travel)">
+    <button onclick="addNewCategory()">Create Category</button>
+</div>
+
+<div id="category-list">
+    <!-- Categories will appear here -->
+</div>
