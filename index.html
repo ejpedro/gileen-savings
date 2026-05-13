@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stardew Savings</title>
+    <title>Gileen's Farm Funds</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <!-- Apple Touch Icon for Home Screen -->
     <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
@@ -15,6 +15,7 @@
             --stardew-green: #5fb141;
             --stardew-red: #e57373;
             --gold-yellow: #ffda00;
+            --header-tan: #f4d3a1;
         }
 
         body {
@@ -38,15 +39,34 @@
             text-align: center;
         }
 
+        /* --- STYLED WOODEN HEADER --- */
+        .stardew-header {
+            color: var(--header-tan);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            margin: 15px 0 25px 0;
+            line-height: 1.4;
+            /* Creates the thick "bolted-on" wooden look */
+            text-shadow: 
+                3px 3px 0 var(--wood-dark), 
+                -1px -1px 0 var(--wood-dark),  
+                1px -1px 0 var(--wood-dark),
+                -1px 1px 0 var(--wood-dark),
+                1px 1px 0 var(--wood-dark),
+                5px 5px 0 rgba(0,0,0,0.4);
+            letter-spacing: 2px;
+        }
+
         .gold-display {
             background: rgba(0,0,0,0.1);
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
+            border: 2px dashed var(--wood-dark);
         }
 
-        h1 { color: var(--gold-yellow); text-shadow: 2px 2px var(--wood-dark); font-size: 1.2rem; margin: 10px 0; }
-        h2 { font-size: 1rem; color: #2e7d32; margin: 5px 0; }
+        h1#total-gold { color: var(--gold-yellow); text-shadow: 2px 2px var(--wood-dark); font-size: 1.4rem; margin: 10px 0; }
+        h2#free-money { font-size: 1rem; color: #2e7d32; margin: 5px 0; }
         
         .stat-text { font-size: 0.6rem; margin: 5px 0; text-transform: uppercase; }
         #sync-status { font-size: 0.4rem; color: #795548; margin-bottom: 10px; }
@@ -77,6 +97,13 @@
         button.remove { background-color: var(--stardew-red); border-bottom-color: #af4448; }
         button:active { transform: translateY(2px); border-bottom: 0; }
 
+        .quest-board-header {
+            font-size: 0.7rem;
+            color: var(--wood-dark);
+            margin: 20px 0 10px 0;
+            text-decoration: underline;
+        }
+
         .category-card {
             background: #fff8e1;
             border: 3px solid var(--wood-dark);
@@ -84,6 +111,7 @@
             padding: 12px;
             text-align: left;
             position: relative;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
         }
 
         .delete-btn {
@@ -96,8 +124,8 @@
             border-bottom: 2px solid #7f0000;
         }
 
-        .category-card h3 { font-size: 0.7rem; margin: 0 0 10px 0; color: var(--wood-dark); width: 80%; }
-        .grid-label { font-size: 0.5rem; margin: 8px 0 4px 0; color: #795548; }
+        .category-card h3 { font-size: 0.7rem; margin: 0 0 10px 0; color: #5e3512; width: 85%; }
+        .grid-label { font-size: 0.45rem; margin: 8px 0 4px 0; color: #795548; text-transform: uppercase; }
         
         .button-grid {
             display: grid;
@@ -133,8 +161,8 @@
         }
 
         .modal-message {
-            font-size: 0.65rem;
-            line-height: 1.5;
+            font-size: 0.6rem;
+            line-height: 1.6;
             color: var(--wood-dark);
             margin-bottom: 20px;
             text-transform: uppercase;
@@ -148,24 +176,16 @@
             margin-bottom: 20px;
         }
 
-        .currency-symbol {
-            font-size: 1rem;
-            color: var(--wood-dark);
-            font-weight: bold;
-        }
+        .currency-symbol { font-size: 1rem; color: var(--wood-dark); }
 
         .modal-input {
             width: 60%;
-            margin-bottom: 0 !important; /* Override default margin */
+            margin-bottom: 0 !important;
             font-size: 0.8rem;
             border: 4px solid var(--wood-dark);
         }
 
-        .modal-btns {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-        }
+        .modal-btns { display: flex; justify-content: center; gap: 15px; }
 
         .stardrop-border {
             border-color: var(--gold-yellow) !important;
@@ -175,26 +195,30 @@
 </head>
 <body>
     <div id="app-container">
-        <div id="sync-status">Checking for cloud save...</div>
+        <div id="sync-status">Connecting to Pelican Town...</div>
+        
+        <h1 class="stardew-header">Gileen's<br>Farm Funds</h1>
+
         <div class="gold-display">
             <h1 id="total-gold">$0</h1>
-            <p class="stat-text">Total Savings</p>
+            <p class="stat-text">Total Gold Saved</p>
             <h2 id="free-money">$0</h2>
-            <p class="stat-text">Free to Allocate</p>
+            <p class="stat-text">Available to Allocate</p>
         </div>
 
-        <input type="number" id="main-input" placeholder="Amount...">
+        <input type="number" id="main-input" placeholder="Enter amount...">
         <div class="btn-row">
             <button onclick="depositGold()">ADD GOLD</button>
-            <button class="remove" onclick="withdrawGold()">REMOVE</button>
+            <button class="remove" onclick="withdrawGold()">SPEND</button>
         </div>
 
-        <hr style="border: 1px solid var(--wood-dark); margin: 20px 0;">
+        <hr style="border: 1px solid var(--wood-dark); margin: 25px 0;">
 
-        <p class="stat-text">Create Category</p>
-        <input type="text" id="cat-name-input" placeholder="e.g., PC Fund">
-        <button onclick="createCategory()">CREATE</button>
+        <p class="quest-board-header">QUEST BOARD</p>
+        <input type="text" id="cat-name-input" placeholder="Quest Objective...">
+        <button onclick="createCategory()">START NEW QUEST</button>
 
+        <p class="stat-text" style="margin-top: 30px;">— ACTIVE QUEST LOG —</p>
         <div id="category-list"></div>
     </div>
 
