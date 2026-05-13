@@ -1,0 +1,49 @@
+body {
+    background-color: #2c1a11;
+    font-family: 'Press Start 2P', cursive;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+#game-container {
+    background-color: #e6be8a; /* Tan wood color */
+    border: 6px solid #5e3512; /* Dark wood border */
+    padding: 20px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 0 #3b220d;
+}
+
+#total-gold {
+    color: #ffda00; /* Gold color */
+    text-shadow: 2px 2px #5e3512;
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+button {
+    background-color: #5fb141; /* Stardew Green */
+    border: none;
+    border-bottom: 4px solid #3d702a;
+    color: white;
+    padding: 10px;
+    font-family: 'Press Start 2P', cursive;
+    cursor: pointer;
+}
+
+button:active {
+    border-bottom: 0;
+    transform: translateY(4px);
+}
+
+/* The "Bouncing" Animation */
+.bounce {
+    animation: bounce 0.3s ease infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
+}
