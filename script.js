@@ -120,7 +120,6 @@ function createCategory() {
 
             state.categories.push({ name: name, allocated: 0.01, goal: goalAmount });
             
-            // Send initial state to cloud
             sendToSheet("Allocate", name, 0.01); 
             if (goalAmount > 0) {
                 sendToSheet("Set Goal", name, goalAmount);
@@ -151,7 +150,6 @@ function allocate(index, amount) {
     if (amount > 0 && free >= amount) {
         cat.allocated += amount;
         
-        // CHECK FOR GOAL COMPLETION
         if (cat.goal > 0 && prevAllocated < cat.goal && cat.allocated >= cat.goal) {
             stardropSound.play();
             alert(`Congratulations! You completed saving up for ${cat.name.toUpperCase()}!`);
@@ -174,8 +172,10 @@ function allocate(index, amount) {
     }
 }
 
+// --- UPDATED MATH HERE ---
 function calculateFree() {
-    const used = state.categories.reduce((sum, cat) => sum + cat.allocated, 0);
+    // Math.floor(cat.allocated) ensures the 0.01 is ignored for the total
+    const used = state.categories.reduce((sum, cat) => sum + Math.floor(cat.allocated), 0);
     return state.total - used;
 }
 
@@ -190,7 +190,6 @@ function updateUI() {
         const div = document.createElement('div');
         div.className = 'category-card';
         
-        // Display Logic for Goals
         let progressText = `Saved: $${Math.floor(cat.allocated)}`;
         if (cat.goal > 0) {
             progressText = `Progress: $${Math.floor(cat.allocated)} / $${cat.goal}`;
