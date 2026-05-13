@@ -1,5 +1,8 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkoPiBQT342QDfsOiltj9G6xg97Umt83hmiVCBJotl8gxMSd0qXrTEHw4qao51dvPPdQ/exec';
 
+// SETUP THE COIN SOUND
+const coinSound = new Audio('coin.wav'); 
+
 let state = JSON.parse(localStorage.getItem('stardew_savings_v2')) || {
     total: 0,
     categories: []
@@ -18,7 +21,7 @@ function depositGold() {
     if (amount > 0) {
         state.total += amount;
         input.value = '';
-        triggerBounce();
+        triggerEffects(); // Play sound and bounce
         sendToSheet("Deposit", "Main", amount);
         save();
     }
@@ -32,6 +35,7 @@ function withdrawGold() {
     if (amount > 0 && free >= amount) {
         state.total -= amount;
         input.value = '';
+        coinSound.play(); // Play sound on remove too
         sendToSheet("Withdraw", "Main", -amount);
         save();
     } else if (amount > free) {
@@ -45,6 +49,7 @@ function createCategory() {
     if (name) {
         state.categories.push({ name: name, allocated: 0 });
         input.value = '';
+        coinSound.play();
         save();
     }
 }
@@ -54,11 +59,9 @@ function deleteCategory(index) {
     const amountSaved = state.categories[index].allocated;
     
     if (confirm(`Delete "${catName}"? Any saved gold ($${amountSaved}) will be moved back to Free to Allocate.`)) {
-        // Log the deletion to Google Sheets
         sendToSheet("Delete Category", catName, -amountSaved);
-        
-        // Remove the category from the array
         state.categories.splice(index, 1);
+        coinSound.play();
         save();
     }
 }
@@ -67,11 +70,13 @@ function allocate(index, amount) {
     const free = calculateFree();
     if (amount > 0 && free >= amount) {
         state.categories[index].allocated += amount;
+        triggerEffects();
         sendToSheet("Allocate", state.categories[index].name, amount);
         save();
     } 
     else if (amount < 0 && state.categories[index].allocated >= Math.abs(amount)) {
         state.categories[index].allocated += amount;
+        triggerEffects();
         sendToSheet("De-allocate", state.categories[index].name, amount);
         save();
     } else {
@@ -112,7 +117,12 @@ function updateUI() {
     });
 }
 
-function triggerBounce() {
+function triggerEffects() {
+    // Play Sound
+    coinSound.currentTime = 0; // Reset sound if clicked rapidly
+    coinSound.play();
+    
+    // Animate Gold Number
     const el = document.getElementById('total-gold');
     el.classList.add('bounce');
     setTimeout(() => el.classList.remove('bounce'), 300);
