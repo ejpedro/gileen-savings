@@ -1,29 +1,43 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkoPiBQT342QDfsOiltj9G6xg97Umt83hmiVCBJotl8gxMSd0qXrTEHw4qao51dvPPdQ/exec';
 
-// Load from local storage or start fresh
-let state = JSON.parse(localStorage.getItem('stardew_data')) || {
+// Load existing data or start a new game
+let state = JSON.parse(localStorage.getItem('stardew_savings_v2')) || {
     total: 0,
     categories: []
 };
 
-// Initial Render
+// Start the UI
 updateUI();
 
 function save() {
-    localStorage.setItem('stardew_data', JSON.stringify(state));
+    localStorage.setItem('stardew_savings_v2', JSON.stringify(state));
     updateUI();
 }
 
 function depositGold() {
     const input = document.getElementById('main-input');
     const amount = parseFloat(input.value);
-    
     if (amount > 0) {
         state.total += amount;
         input.value = '';
         triggerBounce();
         sendToSheet("Deposit", "Main", amount);
         save();
+    }
+}
+
+function withdrawGold() {
+    const input = document.getElementById('main-input');
+    const amount = parseFloat(input.value);
+    const free = calculateFree();
+    
+    if (amount > 0 && free >= amount) {
+        state.total -= amount;
+        input.value = '';
+        sendToSheet("Withdraw", "Main", -amount);
+        save();
+    } else if (amount > free) {
+        alert("Not enough 'Free Gold'! Un-allocate some from categories first.");
     }
 }
 
@@ -39,12 +53,20 @@ function createCategory() {
 
 function allocate(index, amount) {
     const free = calculateFree();
-    if (free >= amount) {
+    
+    // Adding to category
+    if (amount > 0 && free >= amount) {
         state.categories[index].allocated += amount;
         sendToSheet("Allocate", state.categories[index].name, amount);
         save();
+    } 
+    // Subtracting from category
+    else if (amount < 0 && state.categories[index].allocated >= Math.abs(amount)) {
+        state.categories[index].allocated += amount;
+        sendToSheet("De-allocate", state.categories[index].name, amount);
+        save();
     } else {
-        alert("Not enough gold!");
+        alert("Transaction failed! Check your gold counts.");
     }
 }
 
@@ -63,11 +85,24 @@ function updateUI() {
     state.categories.forEach((cat, i) => {
         const div = document.createElement('div');
         div.className = 'category-card';
+        
+        const amounts = [1, 5, 10, 25, 50];
+        
+        const addButtons = amounts.map(amt => 
+            `<button onclick="allocate(${i}, ${amt})">+${amt}</button>`
+        ).join('');
+        
+        const subButtons = amounts.map(amt => 
+            `<button class="remove" onclick="allocate(${i}, -${amt})">-${amt}</button>`
+        ).join('');
+
         div.innerHTML = `
             <h3>${cat.name.toUpperCase()}</h3>
-            <p class="stat-text">SAVED: $${cat.allocated}</p>
-            <button onclick="allocate(${i}, 10)">+10</button>
-            <button onclick="allocate(${i}, 50)">+50</button>
+            <p class="stat-text">Saved: $${cat.allocated}</p>
+            <div class="grid-label">Add Funds:</div>
+            <div class="button-grid">${addButtons}</div>
+            <div class="grid-label">Remove Funds:</div>
+            <div class="button-grid">${subButtons}</div>
         `;
         list.appendChild(div);
     });
@@ -80,12 +115,11 @@ function triggerBounce() {
 }
 
 async function sendToSheet(action, category, amount) {
-    if (SCRIPT_URL.includes('PASTE_YOUR')) return; // Don't run if URL isn't set
     try {
         await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify({ action, category, amount })
         });
-    } catch (e) { console.log("Sheet error", e); }
+    } catch (e) { console.log("Sync error", e); }
 }
