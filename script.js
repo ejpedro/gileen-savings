@@ -8,7 +8,7 @@ const trashSound = new Audio('trashcan.wav');
 const stardropSound = new Audio('stardrop.wav');
 
 // --- SPEED UP THE DIAL ---
-dialSound.playbackRate = 10.0; // 10x faster speed
+dialSound.playbackRate = 5.0; // 5x faster speed
 dialSound.loop = true;
 
 let state = { total: 0, categories: [] };
