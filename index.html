@@ -39,20 +39,36 @@
             position: relative;
         }
 
+        /* --- SYNC CONTAINER & BUTTON --- */
         #sync-container {
             position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 0.8rem;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
         }
 
-        .sync-star { display: inline-block; transition: color 0.3s ease; }
+        .sync-star { 
+            font-size: 1rem;
+            transition: color 0.3s ease; 
+        }
+
         .syncing { animation: star-spin 1s linear infinite; color: #795548; }
         .synced { color: var(--gold-yellow); text-shadow: 0 0 5px var(--gold-yellow); }
         .offline { color: var(--stardew-red); }
 
         @keyframes star-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+        .resync-btn {
+            background-color: #795548;
+            font-size: 0.35rem;
+            padding: 4px 6px;
+            border-bottom: 2px solid #3b220d;
+        }
+
+        /* --- HEADER & DISPLAYS --- */
         .stardew-header {
             color: var(--header-tan);
             font-size: 1.1rem;
@@ -162,8 +178,10 @@
 </head>
 <body>
     <div id="app-container">
+        <!-- SYNC GROUP -->
         <div id="sync-container">
             <span id="sync-icon" class="sync-star synced">★</span>
+            <button class="resync-btn" onclick="fetchCloudData()">SYNC</button>
         </div>
         
         <h1 class="stardew-header">Gileen's<br>Farm Funds</h1>
@@ -191,6 +209,7 @@
         <div id="category-list"></div>
     </div>
 
+    <!-- CUSTOM DIALOGUE BOX -->
     <div id="custom-modal" class="modal-overlay">
         <div id="modal-box" class="modal-box">
             <p id="modal-message" class="modal-message"></p>
