@@ -1,44 +1,37 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvl2g3B4PNAl0IRT5j5Sa6AxDBAO61T3pv63a7R1E9Ajkc0tf6j-9zcdccrJFcGHTLog/exec';
 
 // SETUP THE SOUNDS
-const tallySound = new Audio('coins.wav'); 
-const coinsSound = new Audio('coins.wav'); 
+// Use your new pre-sped-up long file for the tally
+const tallySound = new Audio('coins_long.wav'); 
+const coinsSound = new Audio('coins.wav'); // Keep short version for single clicks
 const chestSound = new Audio('openChest.wav');
 const trashSound = new Audio('trashcan.wav');
 const stardropSound = new Audio('stardrop.wav');
 
-// --- TALLY AUDIO GAP FIX ---
-// We use a manual listener instead of .loop to fix the iPhone stutter
-tallySound.addEventListener('ended', function() {
-    this.currentTime = 0;
-    this.playbackRate = 3.0; // Force rate on every loop for iPhone
-    this.play();
-}, false);
+tallySound.preload = 'auto';
 
 let state = { total: 0, categories: [] };
 
-// Initialize
 const localData = localStorage.getItem('stardew_savings_v2');
 if (localData) { state = JSON.parse(localData); updateUI(); }
 fetchCloudData();
 
-// --- COUNT-UP ANIMATION LOGIC ---
+// --- THE OPTIMIZED LONG-TRACK TALLY ---
 function animateGoldUpdate(targetAmount) {
     const el = document.getElementById('total-gold');
     const startAmount = parseInt(el.innerText.replace('$', '').replace(/,/g, '')) || 0;
     
     if (startAmount === targetAmount) return;
 
-    const duration = 800; 
+    const duration = 1000; 
     const frameRate = 40; 
     const totalFrames = duration / frameRate;
     const increment = (targetAmount - startAmount) / totalFrames;
     
     let currentFrame = 0;
     
-    // Start Tally Sound
+    // Start the long track from the beginning
     tallySound.currentTime = 0;
-    tallySound.playbackRate = 3.0;
     tallySound.play().catch(e => console.log("Audio play blocked"));
     triggerBounce();
 
@@ -46,14 +39,11 @@ function animateGoldUpdate(targetAmount) {
         currentFrame++;
         let currentDisplay = startAmount + (increment * currentFrame);
         
-        // Safety: Ensure sound hasn't been paused by the phone's system
-        if (tallySound.paused && currentFrame < totalFrames) tallySound.play();
-
         if (currentFrame >= totalFrames) {
             clearInterval(timer);
             el.innerText = `$${targetAmount.toLocaleString()}`;
             
-            // Stop Sound Cleanly
+            // ABALONE THE SOUND: Stop immediately when the tally is done
             tallySound.pause();
             tallySound.currentTime = 0;
         } else {
@@ -206,7 +196,6 @@ async function allocate(index, amount) {
             await showStardewDialog(`QUEST COMPLETE! Gileen, you saved up for ${cat.name.toUpperCase()}!`, { isStardrop: true, singleButton: true, confirmText: "COLLECT REWARD" });
         } else {
             coinsSound.currentTime = 0;
-            coinsSound.playbackRate = 1.0; // Regular speed for single clicks
             coinsSound.play();
         }
         sendToSheet("Allocate", cat.name, amount);
@@ -214,7 +203,6 @@ async function allocate(index, amount) {
     } else if (amount < 0 && cat.allocated >= Math.abs(amount)) {
         cat.allocated += amount;
         coinsSound.currentTime = 0;
-        coinsSound.playbackRate = 1.0;
         coinsSound.play();
         sendToSheet("De-allocate", cat.name, amount);
         save();
