@@ -1,16 +1,19 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvl2g3B4PNAl0IRT5j5Sa6AxDBAO61T3pv63a7R1E9Ajkc0tf6j-9zcdccrJFcGHTLog/exec';
 
 // SETUP THE SOUNDS
-// Both the tally and the clicks now use coins.wav as requested
 const tallySound = new Audio('coins.wav'); 
 const coinsSound = new Audio('coins.wav'); 
 const chestSound = new Audio('openChest.wav');
 const trashSound = new Audio('trashcan.wav');
 const stardropSound = new Audio('stardrop.wav');
 
-// --- TALLY SOUND CONFIGURATION ---
-tallySound.playbackRate = 3.0; // 3x speed for a crisp sound
-tallySound.loop = true;
+// --- TALLY AUDIO GAP FIX ---
+// We use a manual listener instead of .loop to fix the iPhone stutter
+tallySound.addEventListener('ended', function() {
+    this.currentTime = 0;
+    this.playbackRate = 3.0; // Force rate on every loop for iPhone
+    this.play();
+}, false);
 
 let state = { total: 0, categories: [] };
 
@@ -33,7 +36,9 @@ function animateGoldUpdate(targetAmount) {
     
     let currentFrame = 0;
     
+    // Start Tally Sound
     tallySound.currentTime = 0;
+    tallySound.playbackRate = 3.0;
     tallySound.play().catch(e => console.log("Audio play blocked"));
     triggerBounce();
 
@@ -41,11 +46,14 @@ function animateGoldUpdate(targetAmount) {
         currentFrame++;
         let currentDisplay = startAmount + (increment * currentFrame);
         
-        if (tallySound.paused) tallySound.play();
+        // Safety: Ensure sound hasn't been paused by the phone's system
+        if (tallySound.paused && currentFrame < totalFrames) tallySound.play();
 
         if (currentFrame >= totalFrames) {
             clearInterval(timer);
             el.innerText = `$${targetAmount.toLocaleString()}`;
+            
+            // Stop Sound Cleanly
             tallySound.pause();
             tallySound.currentTime = 0;
         } else {
@@ -198,6 +206,7 @@ async function allocate(index, amount) {
             await showStardewDialog(`QUEST COMPLETE! Gileen, you saved up for ${cat.name.toUpperCase()}!`, { isStardrop: true, singleButton: true, confirmText: "COLLECT REWARD" });
         } else {
             coinsSound.currentTime = 0;
+            coinsSound.playbackRate = 1.0; // Regular speed for single clicks
             coinsSound.play();
         }
         sendToSheet("Allocate", cat.name, amount);
@@ -205,6 +214,7 @@ async function allocate(index, amount) {
     } else if (amount < 0 && cat.allocated >= Math.abs(amount)) {
         cat.allocated += amount;
         coinsSound.currentTime = 0;
+        coinsSound.playbackRate = 1.0;
         coinsSound.play();
         sendToSheet("De-allocate", cat.name, amount);
         save();
