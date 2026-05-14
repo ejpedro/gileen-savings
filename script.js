@@ -7,8 +7,9 @@ const chestSound = new Audio('openChest.wav');
 const trashSound = new Audio('trashcan.wav');
 const stardropSound = new Audio('stardrop.wav');
 
-// --- SPEED UP THE DIAL ---
-dialSound.playbackRate = 5.0; // 5x faster speed
+// --- IPHONE AUDIO DISTORTION FIX ---
+dialSound.playbackRate = 8.0; 
+dialSound.preservesPitch = false; 
 dialSound.loop = true;
 
 let state = { total: 0, categories: [] };
@@ -18,14 +19,14 @@ const localData = localStorage.getItem('stardew_savings_v2');
 if (localData) { state = JSON.parse(localData); updateUI(); }
 fetchCloudData();
 
-// --- COUNT-UP ANIMATION ---
+// --- COUNT-UP ANIMATION LOGIC ---
 function animateGoldUpdate(targetAmount) {
     const el = document.getElementById('total-gold');
     const startAmount = parseInt(el.innerText.replace('$', '').replace(/,/g, '')) || 0;
     
     if (startAmount === targetAmount) return;
 
-    const duration = 1000; 
+    const duration = 800; // Tally finishes quickly
     const frameRate = 40; 
     const totalFrames = duration / frameRate;
     const increment = (targetAmount - startAmount) / totalFrames;
@@ -33,7 +34,7 @@ function animateGoldUpdate(targetAmount) {
     let currentFrame = 0;
     
     dialSound.currentTime = 0;
-    dialSound.play().catch(e => console.log("Dial play blocked"));
+    dialSound.play().catch(e => console.log("Audio play blocked"));
     triggerBounce();
 
     const timer = setInterval(() => {
@@ -54,7 +55,14 @@ function animateGoldUpdate(targetAmount) {
 }
 
 function showStardewDialog(message, options = {}) {
-    const { showInput = false, isStardrop = false, confirmText = "YES", cancelText = "NO", singleButton = false } = options;
+    const { 
+        showInput = false, 
+        isStardrop = false, 
+        confirmText = "YES", 
+        cancelText = "NO", 
+        singleButton = false 
+    } = options;
+
     return new Promise((resolve) => {
         const modal = document.getElementById('custom-modal');
         const box = document.getElementById('modal-box');
@@ -63,21 +71,26 @@ function showStardewDialog(message, options = {}) {
         const inputField = document.getElementById('custom-modal-input');
         const confirmBtn = document.getElementById('modal-confirm-btn');
         const cancelBtn = document.getElementById('modal-cancel-btn');
+
         msgEl.innerText = message;
         confirmBtn.innerText = confirmText;
         cancelBtn.innerText = cancelText;
         cancelBtn.style.display = singleButton ? 'none' : 'block';
+        
         modal.style.display = 'flex';
         inputContainer.style.display = showInput ? 'block' : 'none';
         inputField.value = '';
+
         if (isStardrop) box.classList.add('stardrop-border');
         else box.classList.remove('stardrop-border');
+
         const close = (value) => {
             modal.style.display = 'none';
             confirmBtn.onclick = null;
             cancelBtn.onclick = null;
             resolve(value);
         };
+
         confirmBtn.onclick = () => close(showInput ? parseFloat(inputField.value) || 0 : true);
         cancelBtn.onclick = () => close(null);
     });
@@ -150,7 +163,10 @@ async function withdrawGold() {
         sendToSheet("Withdraw", "Main", -amount);
         save(false);
     } else if (amount > free) {
-        await showStardewDialog("Gileen, you don't have enough 'Available Gold'!", { singleButton: true, confirmText: "OK" });
+        await showStardewDialog("Gileen, you don't have enough 'Available Gold'!", { 
+            singleButton: true, 
+            confirmText: "OK" 
+        });
     }
 }
 
@@ -159,13 +175,21 @@ async function createCategory() {
     const name = input.value.trim();
     if (name && !state.categories.find(c => c.name === name)) {
         let goalAmount = 0;
-        const wantsGoal = await showStardewDialog(`Help Wanted! Gileen, would you like to set a goal for "${name.toUpperCase()}"?`, { confirmText: "YES", cancelText: "NO" });
+        const wantsGoal = await showStardewDialog(`Help Wanted! Gileen, would you like to set a goal for "${name.toUpperCase()}"?`, { 
+            confirmText: "YES", 
+            cancelText: "NO" 
+        });
         if (wantsGoal) {
-            goalAmount = await showStardewDialog("How much gold is needed?", { showInput: true, confirmText: "SET", cancelText: "SKIP" });
+            goalAmount = await showStardewDialog("How much gold is needed for this reward?", { 
+                showInput: true, 
+                confirmText: "SET", 
+                cancelText: "SKIP" 
+            });
         }
         state.categories.push({ name: name, allocated: 0.01, goal: goalAmount });
         sendToSheet("Allocate", name, 0.01); 
         if (goalAmount > 0) sendToSheet("Set Goal", name, goalAmount);
+        
         chestSound.currentTime = 0;
         chestSound.play();
         input.value = '';
@@ -175,7 +199,10 @@ async function createCategory() {
 
 async function deleteCategory(index) {
     const cat = state.categories[index];
-    const confirmed = await showStardewDialog(`Abandon Quest: "${cat.name.toUpperCase()}"?`, { confirmText: "ABANDON", cancelText: "STAY" });
+    const confirmed = await showStardewDialog(`Abandon Quest: "${cat.name.toUpperCase()}"? All gold will be returned to inventory.`, { 
+        confirmText: "ABANDON", 
+        cancelText: "STAY" 
+    });
     if (confirmed) {
         sendToSheet("Delete Category", cat.name, -cat.allocated);
         state.categories.splice(index, 1);
@@ -194,7 +221,11 @@ async function allocate(index, amount) {
         if (cat.goal > 0 && prevAllocated < cat.goal && cat.allocated >= cat.goal) {
             stardropSound.currentTime = 0;
             stardropSound.play();
-            await showStardewDialog(`QUEST COMPLETE! Gileen, you saved up for ${cat.name.toUpperCase()}!`, { isStardrop: true, singleButton: true, confirmText: "COLLECT REWARD" });
+            await showStardewDialog(`QUEST COMPLETE! Gileen, you saved up for ${cat.name.toUpperCase()}!`, { 
+                isStardrop: true, 
+                singleButton: true, 
+                confirmText: "COLLECT REWARD" 
+            });
         } else {
             coinsSound.currentTime = 0;
             coinsSound.play();
@@ -208,7 +239,10 @@ async function allocate(index, amount) {
         sendToSheet("De-allocate", cat.name, amount);
         save();
     } else {
-        await showStardewDialog("Gileen, more gold is needed!", { singleButton: true, confirmText: "OK" });
+        await showStardewDialog("Gileen, more gold is needed to fund this quest!", { 
+            singleButton: true, 
+            confirmText: "OK" 
+        });
     }
 }
 
@@ -229,10 +263,18 @@ function updateUI(shouldAnimateTotal = true) {
         div.className = 'category-card';
         let progress = `Objective Progress: $${Math.floor(cat.allocated)}`;
         if (cat.goal > 0) progress = `Objective: $${Math.floor(cat.allocated)} / $${cat.goal}`;
+        
         const amounts = [1, 5, 10, 25, 50];
         const addBtns = amounts.map(amt => `<button onclick="allocate(${i}, ${amt})">+${amt}</button>`).join('');
         const subBtns = amounts.map(amt => `<button class="remove" onclick="allocate(${i}, -${amt})">-${amt}</button>`).join('');
-        div.innerHTML = `<button class="delete-btn" onclick="deleteCategory(${i})">X</button><h3>QUEST: ${cat.name.toUpperCase()}</h3><p class="stat-text">${progress}</p><div class="grid-label">Fund Quest:</div><div class="button-grid">${addBtns}</div><div class="grid-label">Remove Funds:</div><div class="button-grid">${subBtns}</div>`;
+
+        div.innerHTML = `
+            <button class="delete-btn" onclick="deleteCategory(${i})">X</button>
+            <h3>QUEST: ${cat.name.toUpperCase()}</h3>
+            <p class="stat-text">${progress}</p>
+            <div class="grid-label">Fund Quest:</div><div class="button-grid">${addBtns}</div>
+            <div class="grid-label">Remove Funds:</div><div class="button-grid">${subBtns}</div>
+        `;
         list.appendChild(div);
     });
 }
