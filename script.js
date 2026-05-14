@@ -10,7 +10,6 @@ const stardropSound = new Audio('stardrop.wav');
 
 // --- TALLY SOUND CONFIGURATION ---
 tallySound.playbackRate = 3.0; // 3x speed for a crisp sound
-tallySound.preservesPitch = false; // Prevents robotic distortion on iPhone
 tallySound.loop = true;
 
 let state = { total: 0, categories: [] };
