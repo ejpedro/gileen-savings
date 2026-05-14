@@ -1,9 +1,8 @@
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvl2g3B4PNAl0IRT5j5Sa6AxDBAO61T3pv63a7R1E9Ajkc0tf6j-9zcdccrJFcGHTLog/exec';
 
 // SETUP THE SOUNDS
-// Use your new pre-sped-up long file for the tally
 const tallySound = new Audio('coins_long.wav'); 
-const coinsSound = new Audio('coins.wav'); // Keep short version for single clicks
+const coinsSound = new Audio('coins.wav'); 
 const chestSound = new Audio('openChest.wav');
 const trashSound = new Audio('trashcan.wav');
 const stardropSound = new Audio('stardrop.wav');
@@ -12,11 +11,19 @@ tallySound.preload = 'auto';
 
 let state = { total: 0, categories: [] };
 
+// --- INITIAL LOAD & SYNC ---
 const localData = localStorage.getItem('stardew_savings_v2');
 if (localData) { state = JSON.parse(localData); updateUI(); }
 fetchCloudData();
 
-// --- THE OPTIMIZED LONG-TRACK TALLY ---
+// --- AUTO-SYNC ON WAKE UP ---
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        fetchCloudData();
+    }
+});
+
+// --- COUNT-UP ANIMATION ---
 function animateGoldUpdate(targetAmount) {
     const el = document.getElementById('total-gold');
     const startAmount = parseInt(el.innerText.replace('$', '').replace(/,/g, '')) || 0;
@@ -30,7 +37,6 @@ function animateGoldUpdate(targetAmount) {
     
     let currentFrame = 0;
     
-    // Start the long track from the beginning
     tallySound.currentTime = 0;
     tallySound.play().catch(e => console.log("Audio play blocked"));
     triggerBounce();
@@ -42,8 +48,6 @@ function animateGoldUpdate(targetAmount) {
         if (currentFrame >= totalFrames) {
             clearInterval(timer);
             el.innerText = `$${targetAmount.toLocaleString()}`;
-            
-            // ABALONE THE SOUND: Stop immediately when the tally is done
             tallySound.pause();
             tallySound.currentTime = 0;
         } else {
